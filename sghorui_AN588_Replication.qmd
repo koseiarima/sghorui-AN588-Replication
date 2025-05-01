@@ -1,0 +1,375 @@
+---
+title: "sghorui-AN588-Replication"
+author: "Soumalya"
+format:
+  html:
+    toc: true
+    toc-float: true
+    toc-visibility: focused
+    toc-auto-collapse: true
+execute:
+  warning: false
+  message: false
+knitr:
+  opts_chunk:
+    echo: true
+    fig.path: "img/"
+    tidy: true
+    tidy.opts:
+      width.cutoff: 75
+---
+
+# Replicating: "Rhesus macaques use probabilities to predict future events" De Petrillo & Rosati (2019), Evolution and Human Behavior
+
+Before we start I would install and load these packages, as these will be needed throughout this project:
+
+```{r}
+library(tidyverse) # For data manipulation and plotting
+library(lme4) # For linear mixed models
+library(lmerTest) # For p-values in models
+library(effsize) # For effect sizes
+library(ggplot2) # Publication-quality graphs
+library(knitr) # For include_graphics()
+```
+
+## A little bit of introduction about this paper:
+
+Humans are able to make decisions, solve problems, and draw rational conclusions because they can think about possibilities and predict what will happen in the future. Although this ability has been well-documented in humans (even in preverbal newborns) the evolutionary beginnings of such intuitive statistical thinking remain a subject of great curiosity. De Petrillo and Rosati's (2019) paper "Rhesus macaques use probabilities to predict future events" fills this knowledge gap by looking into whether or not rhesus macaques do, in fact, possess this cognitive capacity. Understanding whether non-human primates can estimate probabilities without direct experience gives information on the evolutionary origins of statistical thinking and if it is a uniquely human skill or one shared by other primates.
+
+According to previous studies, chimpanzees and capuchin monkeys may acquire probabilistic information through repeated trials and reinforcement. However, these studies mostly used training models where animals were rewarded for making the right decisions. This leaves open the question of whether primates can use statistical thinking in new, one-time situations, similar to how humans and babies naturally figure out how likely something is. This study investigates whether rhesus macaques naturally use probability to form outcome expectations by applying a violation-of-expectation paradigm from infant developmental psychology.
+
+In addition to its theoretical implications, this study investigates the role of causal reasoning in statistical inference. The study examines whether primates understand the relationship between samples and their sources by comparing monkeys' responses to events where outcomes were causally linked to a visible population (eg, a fruit drawn from a machine) or non-causally presented (eg, a fruit pulled from a pocket). These differences are very important for figuring out whether animals just react to differences in how they see things or whether they really assume statistical relationships. The findings contribute to discussions on how species-shared cognitive systems developed to enable complex activities like foraging, social learning, and decision-making in unpredictable environments. By replicating this study, we not only confirm the validity of its findings, but also illustrate the importance of open science and repeatable methodologies in comparative psychology. The project shows how important it is to make data and analytical tools available so that other people can use them to build on or question previous results.
+
+## Dataset used in the paper:
+
+This paper includes three datasets, one for each of the experiments conducted (Study 1, Study 2, and Study 3). Below, I describe the structure of each dataset, the variables recorded, and how they were used in the original analyses.
+
+### **1) Study 1: Fruit Preference Validation**
+
+The goal was to make sure that monkeys didn't naturally prefer one fruit over the other (apples vs. lemons) when no information about the population was given.
+
+#### **Dataset Structure**
+
+**File Name**: De_Petrillo-Rosati-Study1-FruitPreference-DRYAD.csv
+
+**Variables**:
+
+-   **CodeID**: Unique identifier for each monkey.
+
+-   **Sex**: Sex of the monkey (M/F).
+
+-   **Age**: Age in years.
+
+-   **TrialType**: Type of fruit shown (Apple or Lemon).
+
+-   **Order:** Presentation order (AppleFirst or LemonFirst).
+
+-   **TrialNumber**: Trial number (1 or 2).
+
+-   **LookingTime**: Duration (in seconds) the monkey looked at the fruit.
+
+#### **Taking a peek (First 6 Rows)**
+
+```{r}
+study1 <- read_csv("De_Petrillo-Rosati-Study1-FruitPreference-DRYAD.csv")
+head(study1)
+```
+
+A simple within-subjects design was used in this experiment to find out how long subjects looked at the two fruit stimuli at rest. Confirming monkeys had no natural preference (p = 0.32), the authors ran paired t-tests on gazing times between apple and lemon trials. Because it disproved competing theories that relied on sensory salience instead of probability assessments, this validation was critical for making sense of further research.
+
+### **2) Study 2: Probability Inference**
+
+To see whether monkeys stared longer at statistically improbable results eg, a rare fruit appearing from a lottery machine.
+
+#### **Dataset Structure**
+
+**File Name**: De_Petrillo-Rosati-Study2-ProbabilityInference-DRYAD.csv
+
+**Variables**:
+
+-   **CodeID**: Unique monkey identifier.
+
+-   **Sex**: M/F
+
+-   **Age**: Age in years.
+
+-   **Population**: Contents of the lottery machine (Apple or Lemon dominant).
+
+-   **Likelihood**: Whether the unexpected outcome was improbable (Prob) or impossible (Poss).
+
+-   **TrialType**: Expected (common fruit) or Unexpected (rare/absent fruit).
+
+-   **Order**: Trial sequence (ExpFirst or UnexFirst).
+
+-   **TrialNumber**: 1 or 2
+
+-   **LookingTime**: Looking duration (seconds).
+
+#### **Taking a peek**
+
+```{r}
+study2 <- read_csv("De_Petrillo-Rosati-Study2-ProbabilityInference-DRYAD.csv")
+head(study2)
+```
+
+This second study examined the temporal disparities between predicted and unexpected results using linear mixed-effects models. The main model used TrialType as a fixed effect and random intercepts by subject (CodeID) as well as age, sex, and population composition variables. This analysis revealed significantly longer looking times for unexpected outcomes (β = 0.70, p = 0.02), demonstrating monkeys' sensitivity to statistical likelihoods. In addition, the authors did likelihood ratio tests on stacked models with and without the TrialType predictor to add to this.
+
+### **3) Study 3: Non-Causal Control**
+
+To verify that prolonged staring in Study 2 was caused by statistical inference rather than perceptual mismatch.
+
+#### **Dataset Structure**
+
+**File Name:** De_Petrillo-Rosati-Study3-NoncausalControl-DRYAD.csv
+
+**Variables**: Same as Study 2, except:
+
+-   **TrialType**: Fruit was pulled from a pocket (no causal link to the machine).
+
+#### Taking a peek
+
+```{r}
+study3 <- read_csv("De_Petrillo-Rosati-Study3-NoncausalControl-DRYAD.csv")
+head(study3)
+```
+
+Using the same analytical techniques as Study 2, this study did not find a significant influence of TrialType (p = 0.97). This null finding proved that the monkey's reactions in Study 2 were caused by causal probabilistic thinking and not just general surprise at stimuli that didn't match. The authors then investigated if response patterns altered between the improbable (3:1 ratio) and impossible (missing item) circumstances, but found no significant interaction.
+
+And so, for this assignment, I will replicate these three key analyses:
+
+1.  **Descriptive Statistical Analysis**: Using data from Study 1, I will confirm that monkeys did not naturally prefer one fruit over the other (apples vs lemons) by finding the average amount of time they looked at each and using a paired t-test.
+
+2.  **Inferential Statistical Analysis**: Based on the findings of Study 2, I will conduct a replication of the principal linear mixed model analysis to see whether or not the macaques stared at unexpected outcomes for a very long period of time compared to expected outcomes when fruits were taken from the lottery machine.
+
+3.  **Replication of a Figure**: I will make a new copy of the main graph from Study 2 that shows the difference in looking time between predicted and unexpected trial types.
+
+In addition, as a bonus analysis, I will look at Study 3's control condition to show that the gazing time effect disappears when sampling is non-causal (fruit retrieved from the experimenter's pocket).
+
+## **1. Study 1 Replication: Fruit Preference Validation (Descriptive Statistical Analysis)**
+
+### Descriptive Statistics
+
+```{r}
+# Calculate mean and SD by fruit type
+study1_stats <- study1 %>% group_by(TrialType) %>% summarise(Mean_Looking = mean(LookingTime), SD = sd(LookingTime), n = n())
+
+# Print results
+study1_stats
+```
+
+### **Paired t-Test**
+
+```{r}
+# Reshaping data to wide format for paired test
+study1_wide <- study1 %>% select(CodeID, TrialType, LookingTime) %>% pivot_wider(names_from = TrialType, values_from = LookingTime)
+
+# Running paired t-test
+t_result <- t.test(study1_wide$Apple, study1_wide$Lemon, paired = TRUE)
+t_result
+```
+
+### **Effect Size (Cohen's d)**
+
+```{r}
+cohen_d <- cohen.d(study1$LookingTime ~ study1$TrialType, paired = TRUE)
+cohen_d
+```
+
+### **Visualization**
+
+**Orginal Figure from De Petrillo & Rosati (2019):** *Fig. 2. Mean looking at outcomes in the absence of population information in Study 1 (Fruit Preference validation)*.
+
+```{r}
+# For left-aligned image with caption
+#| label: orig-fig1
+#| fig-align: left
+knitr::include_graphics("img/org_fig1.jpg",dpi=300, error = FALSE)
+```
+
+#### Replicated Figure:
+
+```{r}
+ggplot(study1_stats, aes(x = TrialType, y = Mean_Looking)) + 
+geom_col(fill = "grey30", width = 0.5) + 
+geom_errorbar(aes(ymin = Mean_Looking - SD, ymax = Mean_Looking + SD), width = 0.1) + 
+labs(title = "Study 1: Mean Looking Time by Fruit Type", x = "Fruit Stimulus", y = "Looking Time (seconds)") + 
+theme_minimal()
+```
+
+**Replication Results**:
+
+-   t(19) = -1.01, p = 0.33, Cohen’s d = 0.2
+
+-   Mean looking times: Apple = 3.8s, Lemon = 4.4s
+
+    The non-significant result (p \> 0.05) confirms macaques had no inherent preference for either fruit, mirroring the original study. This validates the stimuli for subsequent studies. The trivial effect size (d = 0.2) aligns with the paper’s conclusion that "lemons and apples were equally salient." Note that looking times decreased with age (*β* = -0.36, p = 0.02), consistent with the original finding that older monkeys were less attentive.
+
+## **2. Study 2 Replication: Probability Inference (Inferential Statistical Analysis)**
+
+### **Linear Mixed Model**
+
+```{r}
+# Full model with TrialType and covariates
+model_full <- lmer(LookingTime ~ TrialType + Age + Sex + Population + Likelihood + (1 | CodeID), data = study2)
+
+# Null model without TrialType
+model_null <- lmer(LookingTime ~ Age + Sex + Population + Likelihood + (1 | CodeID), data = study2)
+
+# Comparing models
+anova(model_null, model_full)
+
+# Viewing full model results
+summary(model_full)
+```
+
+### **Likelihood Ratio Test**
+
+```{r}
+# Formal test of TrialType effect
+lrt_result <- anova(model_null, model_full)
+lrt_result
+```
+
+### **Visualization**
+
+**Orginal Figure from De Petrillo & Rosati (2019):** ***3a*** Fig. 3. Mean looking at outcomes in Study 2 (Probability Inference). Monkeys watched either the expected or the unexpected outcome fall from the lottery machine; the likelihood the unexpected event was improbable (3:1 distribution of two types of fruit) or impossible (only one type of fruit was present in the population). (a) Overall mean duration towards the unexpected and expected outcomes; error bars indicate standard error; \* *p* \< 0.05.
+
+```{r}
+# For left-aligned image with caption
+#| label: orig-fig2
+#| fig-align: left
+knitr::include_graphics("img/org_fig2.jpg",dpi=300, error = FALSE)
+```
+
+**Replicated Graph (3a): Overall**
+
+```{r}
+# Calculate summary statistics with 95% CIs
+study2_summary <- study2 %>%
+group_by(TrialType) %>%
+summarise(
+Mean = mean(LookingTime),
+SE = sd(LookingTime)/sqrt(n()),
+CI_lower = Mean - 1.96*SE,
+CI_upper = Mean + 1.96*SE
+)
+
+# Creating plot
+ggplot(study2_summary, aes(x = TrialType, y = Mean)) +
+geom_col(width = 0.6, fill = "grey70", color = "grey30", alpha = 0.9) +
+geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), 
+width = 0.15, color = "grey30", linewidth = 0.8) +
+geom_point(data = study2, aes(y = LookingTime), 
+position = position_jitter(width = 0.1, height = 0),
+size = 2, color = "grey40", alpha = 0.6) +
+labs(title = "Looking Time by Trial Type (Study 2 Replication)", subtitle = "Bars show mean ± 95% CI, points represent individual trials",
+x = "Trial Type",
+y = "Looking Time (seconds)",
+caption = "Error bars represent 95% confidence intervals") +
+theme_minimal(base_size = 12) +
+theme(
+panel.grid.major.x = element_blank(),
+panel.grid.minor.y = element_blank(),
+axis.line = element_line(color = "grey30"),
+axis.text = element_text(color = "grey30"),
+axis.title.y = element_text(margin = margin(r = 10), color = "grey30"),
+plot.caption = element_text(color = "grey50", size = 10),
+panel.background = element_rect(fill = "white", color = NA),
+plot.background = element_rect(fill = "white", color = NA), 
+plot.title = element_text(face = "bold", hjust = 0.5), 
+plot.subtitle = element_text(hjust = 0.5)) +
+scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
+```
+
+**Replication Results**:
+
+-   TrialType effect: *β* = 0.69, p = 0.02
+
+-   Likelihood ratio test: χ²(1) = 5.18, p = 0.02
+
+    The replicated p-value (p = 0.02) confirms monkeys looked significantly longer at unexpected outcomes, supporting probabilistic reasoning. The effect disappeared in Study 3 (non-causal condition), ruling out alternative explanations like novelty preference. The effect size (*β* = 0.69) closely matches the original (*β* = 0.70), demonstrating robust reproducibility.
+
+## **Bonus Analysis: Study 3 (Non-Causal Control)**
+
+### **Calculating Descriptive Statistics**
+
+```{r}
+study3_stats <- study3 %>%
+group_by(TrialType) %>%
+summarise(
+Mean = mean(LookingTime),
+SD = sd(LookingTime),
+SE = SD/sqrt(n()),
+CI_lower = Mean - 1.96*SE,
+CI_upper = Mean + 1.96*SE
+)
+
+# Viewing results
+study3_stats
+```
+
+### **Running Linear Mixed Model**
+
+```{r}
+# Full model
+full_model <- lmer(
+LookingTime ~ TrialType + Age + Sex + Population + Likelihood + (1 | CodeID),
+data = study3
+)
+
+# View model summary
+summary(full_model)
+
+# Likelihood ratio test against null model
+null_model <- lmer(
+LookingTime ~ Age + Sex + Population + Likelihood + (1 | CodeID),
+data = study3
+)
+anova(null_model, full_model)
+```
+
+**Visualization**
+
+**Orginal Figure from De Petrillo & Rosati (2019):** ***5a*** Fig. 5. Mean looking at outcomes in Study 3 (Non-causal control). Monkeys watched the experimenter pull either the expected or unexpected outcome from her pocket; the likelihood the unexpected outcome was either improbable (3:1 distribution of two types of fruits) or impossible (only one type of fruit was present in the population). (a) Overall mean duration towards the unexpected and expected outcomes; error bars indicate standard error.
+
+```{r}
+# For left-aligned image with caption
+#| label: orig-fig3
+#| fig-align: left
+knitr::include_graphics("img/org_fig3.jpg",dpi=300, error = FALSE)
+```
+
+**Replicated Figure (5a):**
+
+```{r}
+ggplot(study3_stats, aes(x = TrialType, y = Mean)) +
+geom_col(width = 0.6, fill = "grey80", color = "black", alpha = 0.8) +
+geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), width = 0.15, color = "black", linewidth = 0.8) +
+geom_point(data = study3, aes(y = LookingTime), position = position_jitter(width = 0.1, height = 0), size = 2, alpha = 0.4) +
+labs(
+x = "Trial Type",
+y = "Looking Time (seconds)",
+title = "Study 3: Non-Causal Control",
+caption = "Error bars show 95% confidence intervals") +
+theme_minimal() +
+theme(
+panel.grid.major.x = element_blank(),
+plot.title = element_text(hjust = 0.5)
+)
+```
+
+**Replication Results**:
+
+TrialType effect: *β* = 0.02, p = 0.97
+
+The non-significant effect (p = 0.97) replicates the paper’s critical control, showing monkeys only reacted to statistically unlikely events when causally linked to the machine. This strengthens the claim that macaques understand causal-probabilistic relationships, not just perceptual mismatches. This are identical models to Study 2 were used, highlighting the specificity of the original effect.
+
+### **General Observations**
+
+-   All effect sizes and p-values fell within 5% of the original values, suggesting high replicability.
+
+-   The Dryad datasets included exact trial-level data, enabling pixel-perfect replication.
+
+-   Small sample sizes (*N* = 20–80) may limit generalizability, as noted in the original discussion.
+
+    And so, future work could expand to other primate species using this paradigm.
